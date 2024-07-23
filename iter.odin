@@ -1,7 +1,5 @@
 package iter
 
-import "core:fmt"
-
 Iterator :: struct($T: typeid) {
     data:  []T,
     index: int,
@@ -17,25 +15,25 @@ Step_Iterator :: struct($T: typeid) {
     step_by:    int,
 }
 
-iter_init :: proc(data: []$T) -> Iterator(T) {
+iter_init :: proc(data: []$T, start_index := 0) -> Iterator(T) {
     iter := Iterator(T) {
         data  = data[:],
-        index = 0,
+        index = start_index,
     }
     return iter
 }
 
-iter_init_window :: proc(data: []$T, window_size: int) -> Window_Iterator(T) {
+iter_init_window :: proc(data: []$T, window_size: int, start_index := 0) -> Window_Iterator(T) {
     iter := Window_Iterator(T) {
-        iter        = iter_init(data),
+        iter        = iter_init(data, start_index),
         window_size = window_size,
     }
     return iter
 }
 
-iter_init_step :: proc(data: []$T, step_by: int) -> Step_Iterator(T) {
+iter_init_step :: proc(data: []$T, step_by: int, start_index := 0) -> Step_Iterator(T) {
     iter := Step_Iterator(T) {
-        iter    = iter_init(data),
+        iter    = iter_init(data, start_index),
         step_by = step_by,
     }
     return iter
@@ -45,6 +43,12 @@ iter_next :: proc {
     iter_next_single,
     iter_next_window,
     iter_next_step,
+}
+
+iter_prev :: proc {
+    iter_prev_single,
+    iter_prev_window,
+    iter_prev_step,
 }
 
 iter_next_single :: proc(it: ^Iterator($T)) -> (elem: T, ok: bool) {
@@ -80,11 +84,42 @@ iter_next_step :: proc(it: ^Step_Iterator($T)) -> (elem: T, ok: bool) {
     return
 }
 
-main :: proc() {
-    numbers := []int{0, 1, 2, 3, 4, 5}
-    it := iter_init_window(numbers, 3)
-
-    for elem, ok := iter_next(&it); ok; elem, ok = iter_next(&it) {
-        fmt.printf("%v\n", elem)
+iter_prev_single :: proc(it: ^Iterator($T)) -> (elem: T, ok: bool) {
+    if it.index < 0 {
+        it.index = 0
+        return {}, false
     }
+
+    elem = it.data[it.index]
+    it.index -= 1
+    ok = true
+    return elem, ok
+}
+
+iter_prev_window :: proc(it: ^Window_Iterator($T)) -> (elems: []T, ok: bool) {
+    if it.index < 0 {
+        it.index = 0
+        return {}, false
+    }
+
+    if it.index + (it.window_size - 1) >= len(it.data) {
+        it.index = len(it.data) - it.window_size
+    }
+
+    elems = it.data[it.index:][:it.window_size]
+    it.index -= 1
+    ok = true
+    return elems, ok
+}
+
+iter_prev_step :: proc(it: ^Step_Iterator($T)) -> (elem: T, ok: bool) {
+    if it.index < 0 {
+        it.index = 0
+        return {}, false
+    }
+
+    elem = it.data[it.index]
+    it.index -= it.step_by
+    ok = true
+    return elem, ok
 }
