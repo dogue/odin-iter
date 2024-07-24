@@ -1,5 +1,7 @@
 package iter
 
+import "base:intrinsics"
+
 Iterator :: struct($T: typeid) {
     data:  []T,
     index: int,
@@ -39,6 +41,10 @@ iter_init_step :: proc(data: []$T, step_by: int, start_index := 0) -> Step_Itera
     return iter
 }
 
+iter_reset :: proc(it: ^$T) where intrinsics.type_is_subtype_of(T, Iterator) {
+    it.iter.index = 0
+}
+
 iter_next :: proc {
     iter_next_single,
     iter_next_window,
@@ -74,7 +80,7 @@ iter_next_window :: proc(it: ^Window_Iterator($T)) -> (elems: []T, ok: bool) {
 }
 
 iter_next_step :: proc(it: ^Step_Iterator($T)) -> (elem: T, ok: bool) {
-    if it.index + it.step_by >= len(it.data) {
+    if it.index + it.step_by > len(it.data) {
         return {}, false
     }
 
